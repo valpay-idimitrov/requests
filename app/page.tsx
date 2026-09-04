@@ -314,6 +314,33 @@ export default function RoadmapPage() {
     supabase.auth.signOut().then(() => router.push('/login'));
   }
 
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [descriptionDraft, setDescriptionDraft] = useState('');
+  const [descriptionSaving, setDescriptionSaving] = useState(false);
+  const [descriptionError, setDescriptionError] = useState('');
+
+  async function saveDescription(id: string) {
+    const trimmed = descriptionDraft.trim();
+    if (!trimmed) { setDescriptionError('Description cannot be empty.'); return; }
+    setDescriptionSaving(true);
+    try {
+      const res = await fetch(`/api/requests/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: trimmed })
+      });
+      const data = await res.json();
+      setDescriptionSaving(false);
+      if (!res.ok) { setDescriptionError(data.error || 'Something went wrong.'); return; }
+      setRequests(rs => rs.map(r => (r.id === id ? { ...r, description: trimmed } : r)));
+      setEditingDescription(false);
+      setDescriptionError('');
+    } catch {
+      setDescriptionSaving(false);
+      setDescriptionError('Something went wrong. Try again.');
+    }
+  }
+
   const palette = PALETTES[theme];
   const rootStyle: React.CSSProperties = {
     fontFamily: 'var(--font-body)', color: 'var(--ox-text)', minHeight: '100vh', display: 'flex',
@@ -533,7 +560,7 @@ export default function RoadmapPage() {
                     return (
                       <div
                         key={req.id}
-                        onClick={() => setDetailId(req.id)}
+                        onClick={() => { setDetailId(req.id); setEditingDescription(false); setDescriptionError(''); }}
                         style={{ background: 'var(--ox-panel)', border: '1px solid var(--ox-border)', borderRadius: 20, padding: '20px 22px', display: 'flex', gap: 18, alignItems: 'flex-start', animation: 'rmFadeIn 0.35s var(--ease-out)', backdropFilter: 'blur(6px)', boxShadow: 'var(--ox-shadow-card)', cursor: 'pointer', transition: 'background 0.24s var(--ease-out), border-color 0.24s var(--ease-out), transform 0.24s var(--ease-out)' }}
                       >
                         <button
@@ -641,16 +668,40 @@ export default function RoadmapPage() {
       )}
 
       {detailReq && (
-        <div style={{ ...overlayStyle, zIndex: 55 }} onClick={() => setDetailId(null)}>
+        <div style={{ ...overlayStyle, zIndex: 55 }} onClick={() => { setDetailId(null); setEditingDescription(false); }}>
           <div style={{ ...panelStyle, maxWidth: 520, maxHeight: '80vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {detailReq.compliance && <span style={{ background: 'rgba(255,107,107,0.16)', color: '#ff6b6b', fontSize: 11, fontWeight: 700, letterSpacing: 0.3, padding: '3px 10px', borderRadius: 'var(--radius-pill)', width: 'fit-content' }}>Compliance</span>}
                 <div className="h5" style={{ color: 'var(--ox-text)', fontFamily: 'var(--font-display)', margin: 0 }}>{detailReq.title}</div>
               </div>
-              <button onClick={() => setDetailId(null)} style={{ background: 'transparent', border: 'none', color: 'var(--ox-text-faint)', fontSize: 20, lineHeight: 1, cursor: 'pointer', padding: 4 }}>×</button>
+              <button onClick={() => { setDetailId(null); setEditingDescription(false); }} style={{ background: 'transparent', border: 'none', color: 'var(--ox-text-faint)', fontSize: 20, lineHeight: 1, cursor: 'pointer', padding: 4 }}>×</button>
             </div>
-            {detailReq.description && <p className="body-sm" style={{ color: 'var(--ox-text-dim)', margin: 0, whiteSpace: 'pre-wrap' }}>{detailReq.description}</p>}
+            {editingDescription ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <textarea
+                  value={descriptionDraft}
+                  onChange={e => { setDescriptionDraft(e.target.value); setDescriptionError(''); }}
+                  rows={4}
+                  style={{ ...fieldStyle, resize: 'vertical' }}
+                />
+                {descriptionError && <div className="body-sm" style={{ color: '#ff9b9b' }}>{descriptionError}</div>}
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                  <button onClick={() => { setEditingDescription(false); setDescriptionError(''); }} style={btnCancel}>Cancel</button>
+                  <button onClick={() => saveDescription(detailReq.id)} disabled={descriptionSaving} style={{ ...btnCta, opacity: descriptionSaving ? 0.7 : 1, cursor: descriptionSaving ? 'default' : 'pointer' }}>{descriptionSaving ? 'Saving…' : 'Save'}</button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {detailReq.description && <p className="body-sm" style={{ color: 'var(--ox-text-dim)', margin: 0, whiteSpace: 'pre-wrap' }}>{detailReq.description}</p>}
+                <button
+                  onClick={() => { setDescriptionDraft(detailReq.description || ''); setEditingDescription(true); setDescriptionError(''); }}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--ox-text-faint)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0, width: 'fit-content', textDecoration: 'underline' }}
+                >
+                  Edit description
+                </button>
+              </div>
+            )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid var(--ox-border)', paddingTop: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ width: 34, height: 34, borderRadius: '50%', background: colorForEmail(detailReq.submittedBy || ''), color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
