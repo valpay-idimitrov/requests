@@ -468,7 +468,7 @@ export default function RoadmapPage() {
       </header>
 
       <div style={{ padding: '48px 32px 96px', flex: 1 }}>
-        <div style={{ maxWidth: 640, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ maxWidth: 720, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
           {activeTab === 'requests' && (
             <>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', paddingTop: 6 }}>
