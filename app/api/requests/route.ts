@@ -18,14 +18,26 @@ interface RequestRow {
   created_at: string | null;
 }
 
+interface Profile {
+  email: string;
+  role: string;
+  vote_weight: number;
+}
+
 function serialize(
   row: RequestRow,
   voterIdsByRequest: Map<string, string[]>,
-  emailById: Map<string, string>,
+  profileById: Map<string, Profile>,
   myUserId: string | null
 ) {
   const voterIds = voterIdsByRequest.get(row.id) || [];
-  const voterEmails = voterIds.map(id => emailById.get(id)).filter((e): e is string => !!e);
+  const voters = voterIds
+    .map(id => profileById.get(id))
+    .filter((p): p is Profile => !!p)
+    .map(p => ({ email: p.email, role: p.role, weight: p.vote_weight }));
+
+  const submitterProfile = row.submitted_by ? profileById.get(row.submitted_by) : undefined;
+
   return {
     id: row.id,
     title: row.title,
@@ -39,10 +51,11 @@ function serialize(
     primaryCategory: row.primary_category || '',
     audience: row.audience || [],
     created: row.created_at || new Date().toISOString(),
-    votes: voterEmails.length,
-    voters: voterEmails,
+    votes: voters.length,
+    weightedVotes: voters.reduce((sum, v) => sum + v.weight, 0),
+    voters,
     votedByMe: !!(myUserId && voterIds.includes(myUserId)),
-    submittedBy: (row.submitted_by && emailById.get(row.submitted_by)) || '',
+    submittedBy: submitterProfile?.email || '',
     compliance: !!row.compliance
   };
 }
@@ -73,24 +86,22 @@ export async function GET() {
     voterIdsByRequest.set(v.request_id, list);
   });
 
-  // Resolve every user id we'll need to display (submitters + voters) to an
-  // email in one query, since `requests`/`votes` only store uuids.
   const neededIds = new Set<string>();
   rows.forEach(r => { if (r.submitted_by) neededIds.add(r.submitted_by); });
   (votes || []).forEach(v => neededIds.add(v.user_id));
 
-  const emailById = new Map<string, string>();
+  const profileById = new Map<string, Profile>();
   if (neededIds.size > 0) {
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
-      .select('id, email')
+      .select('id, email, role, vote_weight')
       .in('id', Array.from(neededIds));
     if (profilesError) return NextResponse.json({ error: profilesError.message }, { status: 500 });
-    (profiles || []).forEach(p => emailById.set(p.id, p.email));
+    (profiles || []).forEach(p => profileById.set(p.id, { email: p.email, role: p.role, vote_weight: p.vote_weight }));
   }
 
   return NextResponse.json({
-    requests: rows.map(r => serialize(r, voterIdsByRequest, emailById, user?.id ?? null))
+    requests: rows.map(r => serialize(r, voterIdsByRequest, profileById, user?.id ?? null))
   });
 }
 
@@ -113,7 +124,6 @@ export async function POST(req: Request) {
   if (!title) return NextResponse.json({ error: 'Please add a title.' }, { status: 400 });
   if (!description) return NextResponse.json({ error: 'Please add a description.' }, { status: 400 });
 
-  // `requests.id` is text with no default, so we generate one here.
   const id = `req-${crypto.randomUUID()}`;
 
   const { error: insertError } = await supabase.from('requests').insert({
@@ -130,8 +140,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: insertError.message }, { status: 500 });
   }
 
-  // Submitting a request auto-casts the submitter's own vote, matching the
-  // original prototype's behavior (new requests start at 1 vote).
   const { error: voteError } = await supabase.from('votes').insert({ user_id: user.id, request_id: id });
   if (voteError) {
     return NextResponse.json({ error: voteError.message }, { status: 500 });
@@ -146,10 +154,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: fetchError?.message || 'Request created but failed to load.' }, { status: 500 });
   }
 
+  const { data: myProfile } = await supabase
+    .from('profiles')
+    .select('email, role, vote_weight')
+    .eq('id', user.id)
+    .single();
+
+  const profileById = new Map<string, Profile>();
+  if (myProfile) profileById.set(user.id, myProfile);
   const voterIdsByRequest = new Map<string, string[]>([[id, [user.id]]]);
-  const emailById = new Map<string, string>([[user.id, user.email || '']]);
 
   return NextResponse.json({
-    request: serialize(created as RequestRow, voterIdsByRequest, emailById, user.id)
+    request: serialize(created as RequestRow, voterIdsByRequest, profileById, user.id)
   });
 }

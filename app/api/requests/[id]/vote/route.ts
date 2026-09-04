@@ -31,19 +31,20 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   if (votesError) return NextResponse.json({ error: votesError.message }, { status: 500 });
 
   const voterIds = (votes || []).map(v => v.user_id);
-  let voters: string[] = [];
+  let voters: { email: string; role: string; weight: number }[] = [];
   if (voterIds.length > 0) {
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
-      .select('email')
+      .select('email, role, vote_weight')
       .in('id', voterIds);
     if (profilesError) return NextResponse.json({ error: profilesError.message }, { status: 500 });
-    voters = (profiles || []).map(p => p.email);
+    voters = (profiles || []).map(p => ({ email: p.email, role: p.role, weight: p.vote_weight }));
   }
 
   return NextResponse.json({
     id: params.id,
     votes: voters.length,
+    weightedVotes: voters.reduce((sum, v) => sum + v.weight, 0),
     voters,
     votedByMe: !existingVote
   });

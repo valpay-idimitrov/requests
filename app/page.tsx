@@ -5,6 +5,12 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Image from 'next/image';
 
+interface Voter {
+  email: string;
+  role: string;
+  weight: number;
+}
+
 interface RoadmapRequest {
   id: string;
   title: string;
@@ -18,6 +24,7 @@ interface RoadmapRequest {
   audience: string[];
   created: string;
   votes: number;
+  weightedVotes: number;
   submittedBy?: string;
   compliance?: boolean;
   description?: string;
@@ -37,6 +44,24 @@ function initialsFor(email: string) {
 function colorForEmail(email: string) {
   const h = hashStr(email || '') % 360;
   return 'hsl(' + h + ', 55%, 42%)';
+}
+// Visible weighting: a colored ring around the avatar signals seniority.
+// Founders > CEO/CTO > dept heads > everyone else (no ring).
+function ringColorForWeight(weight: number): string | undefined {
+  if (weight >= 5) return '#f6d3ba'; // founder — gold
+  if (weight >= 4) return '#9edcff'; // exec (CEO/CTO) — blue
+  if (weight >= 2) return '#b6ffb0'; // dept head — green
+  return undefined;
+}
+function roleLabel(role: string): string {
+  switch (role) {
+    case 'founder': return 'Founder';
+    case 'ceo': return 'CEO';
+    case 'cto': return 'CTO';
+    case 'cfo': return 'CFO';
+    case 'dept_head': return 'Head of Department';
+    default: return '';
+  }
 }
 function isValidEmail(v: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v || '');
@@ -70,7 +95,7 @@ interface ParticleMeta {
 }
 interface ParticleStyle { id: string; emoji: string; style: React.CSSProperties; }
 
-type SortKey = 'newest' | 'impact' | 'votes';
+type SortKey = 'newest' | 'impact' | 'votes' | 'leadership';
 type AuthMode = 'login' | 'signup';
 
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
@@ -81,7 +106,7 @@ export default function RoadmapPage() {
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [myEmail, setMyEmail] = useState('');
   const [requests, setRequests] = useState<RoadmapRequest[]>([]);
-  const [voterLists, setVoterLists] = useState<Record<string, string[]>>({});
+  const [voterLists, setVoterLists] = useState<Record<string, Voter[]>>({});
   const [loadingRequests, setLoadingRequests] = useState(true);
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('votes');
@@ -166,8 +191,8 @@ export default function RoadmapPage() {
     try {
       const res = await fetch('/api/requests');
       if (!res.ok) return;
-      const data: { requests: (RoadmapRequest & { voters: string[] })[] } = await res.json();
-      const voters: Record<string, string[]> = {};
+      const data: { requests: (RoadmapRequest & { voters: Voter[] })[] } = await res.json();
+      const voters: Record<string, Voter[]> = {};
       data.requests.forEach(r => { voters[r.id] = r.voters; });
       setRequests(data.requests);
       setVoterLists(voters);
@@ -255,19 +280,24 @@ export default function RoadmapPage() {
       setAuthMode('login');
       return;
     }
-    // Optimistic update, reconciled with the server response below.
+    // Optimistic update, reconciled with the server response below. The
+    // placeholder role/weight for "me" here is a guess (corrected the
+    // instant the server responds) — good enough for the brief flash
+    // before the real response lands.
     const prevVoters = voterLists[id] || [];
-    const willVote = !prevVoters.includes(myEmail);
-    const optimisticVoters = willVote ? [...prevVoters, myEmail] : prevVoters.filter(e => e !== myEmail);
+    const willVote = !prevVoters.some(v => v.email === myEmail);
+    const optimisticVoters = willVote
+      ? [...prevVoters, { email: myEmail, role: 'member', weight: 1 }]
+      : prevVoters.filter(v => v.email !== myEmail);
     setVoterLists(prev => ({ ...prev, [id]: optimisticVoters }));
     setRequests(rs => rs.map(r => (r.id === id ? { ...r, votes: optimisticVoters.length } : r)));
 
     try {
       const res = await fetch(`/api/requests/${id}/vote`, { method: 'POST' });
       if (!res.ok) throw new Error('vote failed');
-      const data: { votes: number; voters: string[] } = await res.json();
+      const data: { votes: number; weightedVotes: number; voters: Voter[] } = await res.json();
       setVoterLists(prev => ({ ...prev, [id]: data.voters }));
-      setRequests(rs => rs.map(r => (r.id === id ? { ...r, votes: data.votes } : r)));
+      setRequests(rs => rs.map(r => (r.id === id ? { ...r, votes: data.votes, weightedVotes: data.weightedVotes } : r)));
     } catch {
       // Roll back on failure.
       setVoterLists(prev => ({ ...prev, [id]: prevVoters }));
@@ -299,7 +329,7 @@ export default function RoadmapPage() {
       });
       const data = await res.json();
       if (!res.ok) { setFormError(data.error || 'Something went wrong.'); return; }
-      const newReq = data.request as RoadmapRequest & { voters: string[] };
+      const newReq = data.request as RoadmapRequest & { voters: Voter[] };
       setRequests(rs => [newReq, ...rs]);
       setVoterLists(prev => ({ ...prev, [newReq.id]: newReq.voters }));
       setModalOpen(false);
@@ -358,6 +388,7 @@ export default function RoadmapPage() {
   if (sortKey === 'votes') filtered = [...filtered].sort((a, b) => b.votes - a.votes || b.gmvValue - a.gmvValue);
   else if (sortKey === 'newest') filtered = [...filtered].sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime());
   else if (sortKey === 'impact') filtered = [...filtered].sort((a, b) => b.gmvValue - a.gmvValue);
+  else if (sortKey === 'leadership') filtered = [...filtered].sort((a, b) => b.weightedVotes - a.weightedVotes || b.votes - a.votes);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages - 1);
@@ -366,7 +397,8 @@ export default function RoadmapPage() {
   const sortTabs: { key: SortKey; label: string }[] = [
     { key: 'newest', label: 'Newest' },
     { key: 'impact', label: 'Money Talks' },
-    { key: 'votes', label: "People's Choice" }
+    { key: 'votes', label: "People's Choice" },
+    { key: 'leadership', label: 'Leadership Priority' }
   ];
 
   const q3Requests = [...requests].sort((a, b) => b.votes - a.votes).slice(0, 5);
@@ -553,8 +585,10 @@ export default function RoadmapPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {pageItems.map(req => {
                     const voters = voterLists[req.id] || [];
-                    const voted = !!(myEmail && voters.includes(myEmail));
-                    const shown = voters.slice(0, 5);
+                    const voted = !!(myEmail && voters.some(v => v.email === myEmail));
+                    // Highest-weight voters shown first so leadership badges surface even
+                    // when there are more than 5 voters.
+                    const shown = [...voters].sort((a, b) => b.weight - a.weight).slice(0, 5);
                     const overflowCount = voters.length - shown.length;
                     const showImpact = req.gmvValue >= 1000000;
                     return (
@@ -581,12 +615,16 @@ export default function RoadmapPage() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                             {voters.length > 0 && (
                               <div style={{ display: 'flex', alignItems: 'center' }}>
-                                {shown.map((email, i) => (
-                                  <div key={email} className="rm-tip" style={{ width: 24, height: 24, borderRadius: '50%', background: colorForEmail(email), color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--ox-2)', marginLeft: i === 0 ? 0 : -8, position: 'relative', zIndex: shown.length - i }}>
-                                    {initialsFor(email)}
-                                    <span className="rm-tip-bubble">{email}</span>
-                                  </div>
-                                ))}
+                                {shown.map((voter, i) => {
+                                  const ring = ringColorForWeight(voter.weight);
+                                  const label = roleLabel(voter.role);
+                                  return (
+                                    <div key={voter.email} className="rm-tip" style={{ width: 24, height: 24, borderRadius: '50%', background: colorForEmail(voter.email), color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: ring ? `2px solid ${ring}` : '2px solid var(--ox-2)', marginLeft: i === 0 ? 0 : -8, position: 'relative', zIndex: shown.length - i }}>
+                                      {initialsFor(voter.email)}
+                                      <span className="rm-tip-bubble">{voter.email}{label ? ` · ${label}` : ''}</span>
+                                    </div>
+                                  );
+                                })}
                                 {overflowCount > 0 && (
                                   <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--ox-panel-strong)', color: 'var(--ox-text-dim)', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--ox-2)', marginLeft: -8, position: 'relative' }}>
                                     +{overflowCount}
@@ -599,6 +637,9 @@ export default function RoadmapPage() {
                                 {initialsFor(req.submittedBy)}
                                 <span className="rm-tip-bubble">{req.submittedBy}</span>
                               </div>
+                            )}
+                            {req.weightedVotes !== req.votes && (
+                              <span style={{ background: 'rgba(246,211,186,0.16)', color: '#f6d3ba', fontSize: 11, fontWeight: 700, letterSpacing: 0.3, padding: '3px 10px', borderRadius: 'var(--radius-pill)' }}>Priority {req.weightedVotes}</span>
                             )}
                             {showImpact && <span style={{ background: 'rgba(107,196,159,0.16)', color: '#6bc49f', fontSize: 11, fontWeight: 700, letterSpacing: 0.3, padding: '3px 10px', borderRadius: 'var(--radius-pill)' }}>GMV {req.gmvLabel}</span>}
                             {req.compliance && <span style={{ background: 'rgba(255,107,107,0.16)', color: '#ff6b6b', fontSize: 11, fontWeight: 700, letterSpacing: 0.3, padding: '3px 10px', borderRadius: 'var(--radius-pill)' }}>Compliance</span>}
@@ -717,15 +758,22 @@ export default function RoadmapPage() {
               )}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, borderTop: '1px solid var(--ox-border)', paddingTop: 16 }}>
-              <span className="body-xs" style={{ color: 'var(--ox-text-faint)' }}>{detailReq.votes} vote(s)</span>
+              <span className="body-xs" style={{ color: 'var(--ox-text-faint)' }}>
+                {detailReq.votes} vote(s){detailReq.weightedVotes !== detailReq.votes ? ` — ${detailReq.weightedVotes} weighted (Leadership Priority)` : ''}
+              </span>
               {detailVoters.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {detailVoters.map(email => (
-                    <div key={email} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ width: 24, height: 24, borderRadius: '50%', background: colorForEmail(email), color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>{initialsFor(email)}</div>
-                      <span className="body-sm" style={{ color: 'var(--ox-text-dim)' }}>{email}</span>
-                    </div>
-                  ))}
+                  {[...detailVoters].sort((a, b) => b.weight - a.weight).map(voter => {
+                    const ring = ringColorForWeight(voter.weight);
+                    const label = roleLabel(voter.role);
+                    return (
+                      <div key={voter.email} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: colorForEmail(voter.email), color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', border: ring ? `2px solid ${ring}` : undefined }}>{initialsFor(voter.email)}</div>
+                        <span className="body-sm" style={{ color: 'var(--ox-text-dim)' }}>{voter.email}</span>
+                        {label && <span className="body-xs" style={{ color: 'var(--ox-text-faint)', fontWeight: 600 }}>{label}</span>}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
