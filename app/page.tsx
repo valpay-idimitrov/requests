@@ -95,7 +95,7 @@ interface ParticleMeta {
 }
 interface ParticleStyle { id: string; emoji: string; style: React.CSSProperties; }
 
-type SortKey = 'newest' | 'impact' | 'votes' | 'leadership';
+type SortKey = 'newest' | 'impact' | 'votes';
 type AuthMode = 'login' | 'signup';
 
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
@@ -285,12 +285,14 @@ export default function RoadmapPage() {
     // instant the server responds) — good enough for the brief flash
     // before the real response lands.
     const prevVoters = voterLists[id] || [];
+    const prevWeighted = prevVoters.reduce((sum, v) => sum + v.weight, 0);
     const willVote = !prevVoters.some(v => v.email === myEmail);
     const optimisticVoters = willVote
       ? [...prevVoters, { email: myEmail, role: 'member', weight: 1 }]
       : prevVoters.filter(v => v.email !== myEmail);
+    const optimisticWeighted = optimisticVoters.reduce((sum, v) => sum + v.weight, 0);
     setVoterLists(prev => ({ ...prev, [id]: optimisticVoters }));
-    setRequests(rs => rs.map(r => (r.id === id ? { ...r, votes: optimisticVoters.length } : r)));
+    setRequests(rs => rs.map(r => (r.id === id ? { ...r, votes: optimisticVoters.length, weightedVotes: optimisticWeighted } : r)));
 
     try {
       const res = await fetch(`/api/requests/${id}/vote`, { method: 'POST' });
@@ -301,7 +303,7 @@ export default function RoadmapPage() {
     } catch {
       // Roll back on failure.
       setVoterLists(prev => ({ ...prev, [id]: prevVoters }));
-      setRequests(rs => rs.map(r => (r.id === id ? { ...r, votes: prevVoters.length } : r)));
+      setRequests(rs => rs.map(r => (r.id === id ? { ...r, votes: prevVoters.length, weightedVotes: prevWeighted } : r)));
     }
   }
 
@@ -385,10 +387,9 @@ export default function RoadmapPage() {
     if (search && !r.title.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
-  if (sortKey === 'votes') filtered = [...filtered].sort((a, b) => b.votes - a.votes || b.gmvValue - a.gmvValue);
+  if (sortKey === 'votes') filtered = [...filtered].sort((a, b) => b.weightedVotes - a.weightedVotes || b.votes - a.votes || b.gmvValue - a.gmvValue);
   else if (sortKey === 'newest') filtered = [...filtered].sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime());
   else if (sortKey === 'impact') filtered = [...filtered].sort((a, b) => b.gmvValue - a.gmvValue);
-  else if (sortKey === 'leadership') filtered = [...filtered].sort((a, b) => b.weightedVotes - a.weightedVotes || b.votes - a.votes);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages - 1);
@@ -397,8 +398,7 @@ export default function RoadmapPage() {
   const sortTabs: { key: SortKey; label: string }[] = [
     { key: 'newest', label: 'Newest' },
     { key: 'impact', label: 'Money Talks' },
-    { key: 'votes', label: "People's Choice" },
-    { key: 'leadership', label: 'Leadership Priority' }
+    { key: 'votes', label: "People's Choice" }
   ];
 
   const q3Requests = [...requests].sort((a, b) => b.votes - a.votes).slice(0, 5);
@@ -491,7 +491,7 @@ export default function RoadmapPage() {
             </button>
             <div style={{ display: 'flex', gap: 10, alignItems: 'stretch', marginLeft: 'auto', flexWrap: 'nowrap', height: 40, boxSizing: 'border-box' }}>
               <div style={statCard()}><span style={statNum()}>{requests.length}</span><span style={statLabel()}>Open requests</span></div>
-              <div style={statCard()}><span style={statNum()}>{requests.reduce((s, r) => s + r.votes, 0)}</span><span style={statLabel()}>Votes cast</span></div>
+              <div style={statCard()}><span style={statNum()}>{requests.reduce((s, r) => s + r.weightedVotes, 0)}</span><span style={statLabel()}>Votes cast</span></div>
               <div style={statCard('#6bc49f')}><span style={statNum('#6bc49f')}>{gmvCount}</span><span style={statLabel('#6bc49f')}>High GMV</span></div>
               <div style={statCard('#ff6b6b')}><span style={statNum('#ff6b6b')}>{complianceCount}</span><span style={statLabel('#ff6b6b')}>Compliance</span></div>
             </div>
@@ -608,7 +608,7 @@ export default function RoadmapPage() {
                           }}
                         >
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={voted ? 'var(--ox-cta-text)' : 'var(--ox-text-dim)'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
-                          <span style={{ fontSize: 15, fontWeight: 700, color: voted ? 'var(--ox-cta-text)' : 'var(--ox-text)' }}>{req.votes}</span>
+                          <span style={{ fontSize: 15, fontWeight: 700, color: voted ? 'var(--ox-cta-text)' : 'var(--ox-text)' }}>{req.weightedVotes}</span>
                         </button>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 9, minWidth: 0, flex: 1 }}>
                           <div style={{ margin: 0, color: 'var(--ox-text)', fontSize: 16, fontWeight: 600, lineHeight: 1.4 }}>{req.title}</div>
@@ -639,7 +639,7 @@ export default function RoadmapPage() {
                               </div>
                             )}
                             {req.weightedVotes !== req.votes && (
-                              <span style={{ background: 'rgba(246,211,186,0.16)', color: '#f6d3ba', fontSize: 11, fontWeight: 700, letterSpacing: 0.3, padding: '3px 10px', borderRadius: 'var(--radius-pill)' }}>Priority {req.weightedVotes}</span>
+                              <span style={{ background: 'rgba(255,255,255,0.08)', color: 'var(--ox-text-faint)', fontSize: 11, fontWeight: 700, letterSpacing: 0.3, padding: '3px 10px', borderRadius: 'var(--radius-pill)' }}>{req.votes} raw vote{req.votes === 1 ? '' : 's'}</span>
                             )}
                             {showImpact && <span style={{ background: 'rgba(107,196,159,0.16)', color: '#6bc49f', fontSize: 11, fontWeight: 700, letterSpacing: 0.3, padding: '3px 10px', borderRadius: 'var(--radius-pill)' }}>GMV {req.gmvLabel}</span>}
                             {req.compliance && <span style={{ background: 'rgba(255,107,107,0.16)', color: '#ff6b6b', fontSize: 11, fontWeight: 700, letterSpacing: 0.3, padding: '3px 10px', borderRadius: 'var(--radius-pill)' }}>Compliance</span>}
@@ -759,7 +759,7 @@ export default function RoadmapPage() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, borderTop: '1px solid var(--ox-border)', paddingTop: 16 }}>
               <span className="body-xs" style={{ color: 'var(--ox-text-faint)' }}>
-                {detailReq.votes} vote(s){detailReq.weightedVotes !== detailReq.votes ? ` — ${detailReq.weightedVotes} weighted (Leadership Priority)` : ''}
+                {detailReq.weightedVotes} vote(s){detailReq.weightedVotes !== detailReq.votes ? ` (${detailReq.votes} raw vote${detailReq.votes === 1 ? '' : 's'})` : ''}
               </span>
               {detailVoters.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
