@@ -21,7 +21,13 @@ const ROTATING_NAMES = [
   { name: 'Josh', color: '#ffd166', transform: 'scale(0.95) rotate(2deg)' },
   { name: 'Matt', color: '#c6b4ff', transform: 'skewX(-5deg) scale(1.08)' },
   { name: 'Tristan', color: '#ffcf9e', transform: 'rotate(-1.5deg) skewX(3deg)' },
-  { name: 'Izza', color: '#ff9ec4', transform: 'scale(1.07) rotate(1deg)' }
+  { name: 'Izza', color: '#ff9ec4', transform: 'scale(1.07) rotate(1deg)' },
+  { name: 'Hadi', color: '#b6ffb0', transform: 'rotate(2.2deg) scale(1.02)' },
+  { name: 'May', color: '#c6b4ff', transform: 'skewX(-3deg) rotate(-1.8deg)' },
+  { name: 'Zaliqa', color: '#9edcff', transform: 'scale(0.97) rotate(1.5deg)' },
+  { name: 'Ali Kobba', color: '#ffd166', transform: 'skewX(4deg) scale(1.03)' },
+  { name: 'Ali Kaakati', color: '#ffcf9e', transform: 'rotate(-2.3deg) skewX(2deg)' },
+  { name: 'Ahmad', color: '#ff9ec4', transform: 'scale(1.05) rotate(-1.2deg)' }
 ];
 
 const loginPalette: React.CSSProperties = {
@@ -202,7 +208,7 @@ export default function SignupPage() {
 
             {!checkEmail && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
-                <p className="body-xs" style={{ color: 'var(--ox-text-faint)', margin: 0, textAlign: 'center' }}>Already have an account? <a href="/login" style={{ fontWeight: 600 }}>Log in</a></p>
+                <p className="body-xs" style={{ color: 'var(--ox-text-faint)', margin: 0, textAlign: 'center' }}>Already have an account? <a href="/login" style={{ fontWeight: 600, color: 'var(--ox-text)' }}>Log in</a></p>
               </div>
             )}
           </div>

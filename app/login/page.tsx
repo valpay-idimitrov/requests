@@ -9,7 +9,9 @@ const ROTATING_NAMES = [
   { name: 'Ethan', flare: 0 }, { name: 'Ethan', flare: 0 }, { name: 'Tarek', flare: 1 }, { name: 'Mitch', flare: 2 },
   { name: 'Kenneth', flare: 3 }, { name: 'Cam', flare: 4 }, { name: 'Meagan', flare: 0 }, { name: 'Melissa', flare: 5 },
   { name: 'Carly', flare: 1 }, { name: 'Blake', flare: 2 }, { name: 'Elie', flare: 3 }, { name: 'Youssef', flare: 4 },
-  { name: 'Raph', flare: 1 }, { name: 'Josh', flare: 2 }, { name: 'Matt', flare: 5 }, { name: 'Tristan', flare: 0 }, { name: 'Izza', flare: 3 }
+  { name: 'Raph', flare: 1 }, { name: 'Josh', flare: 2 }, { name: 'Matt', flare: 5 }, { name: 'Tristan', flare: 0 }, { name: 'Izza', flare: 3 },
+  { name: 'Hadi', flare: 4 }, { name: 'May', flare: 5 }, { name: 'Zaliqa', flare: 1 }, { name: 'Ali Kobba', flare: 2 },
+  { name: 'Ali Kaakati', flare: 0 }, { name: 'Ahmad', flare: 3 }
 ];
 const FLARE_COLORS = ['#E0B3F5', '#C084E8', '#F0A8E0', '#B48EF0', '#D9A8F5', '#9C6FD9'];
 
@@ -63,7 +65,7 @@ export default function LoginPage() {
     setFormVisible(false);
     setTimeout(() => {
       setMode(next); setFormVisible(true); setError(''); setPassword(''); setConfirmPassword(''); setCheckEmail(false); setResetSent(false);
-    }, 40);
+    }, 320);
   }
 
   async function onSubmit() {
@@ -174,8 +176,7 @@ export default function LoginPage() {
         </div>
 
         <div style={{ position: 'relative', border: '1px solid var(--ox-border)', borderRadius: 20, width: 380, flexShrink: 0, boxShadow: 'var(--ox-shadow-modal, 0 24px 64px rgba(0,0,0,0.28))', overflow: 'hidden', background: 'var(--ox-panel)', backdropFilter: 'blur(20px)' }}>
-          {formVisible && (
-          <div style={{ position: 'relative', padding: '36px 36px 32px', display: 'flex', flexDirection: 'column', gap: 24, animation: 'rmCardFade 0.3s ease-out both' }}>
+          <div style={{ position: 'relative', padding: '36px 36px 32px', display: 'flex', flexDirection: 'column', gap: 24, opacity: formVisible ? 1 : 0, transform: formVisible ? 'translateY(0) scale(1)' : 'translateY(10px) scale(0.99)', transition: 'opacity 0.32s cubic-bezier(0.22,1,0.36,1), transform 0.32s cubic-bezier(0.22,1,0.36,1)' }}>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ color: 'var(--ox-text)', fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 500, letterSpacing: -0.4, margin: 0 }}>
@@ -242,23 +243,22 @@ export default function LoginPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
               {(isReset || resetSent) && (
                 <p className="body-xs" style={{ color: 'var(--ox-text-faint)', margin: 0, textAlign: 'center' }}>
-                  <a href="#" onClick={e => { e.preventDefault(); switchMode('login'); }} style={{ fontWeight: 600 }}>Back to sign in</a>
+                  <a href="#" onClick={e => { e.preventDefault(); switchMode('login'); }} style={{ fontWeight: 600, color: 'var(--ox-text)' }}>Back to sign in</a>
                 </p>
               )}
               {checkEmail && (
                 <p className="body-xs" style={{ color: 'var(--ox-text-faint)', margin: 0, textAlign: 'center' }}>
-                  <a href="#" onClick={e => { e.preventDefault(); switchMode('login'); }} style={{ fontWeight: 600 }}>Go to sign in</a>
+                  <a href="#" onClick={e => { e.preventDefault(); switchMode('login'); }} style={{ fontWeight: 600, color: 'var(--ox-text)' }}>Go to sign in</a>
                 </p>
               )}
               {!isReset && !resetSent && !checkEmail && (
                 <p className="body-xs" style={{ color: 'var(--ox-text-faint)', margin: 0, textAlign: 'center' }}>
                   {isSignup ? 'Already have an account?' : "Don't have an account?"}{' '}
-                  <a href="#" onClick={e => { e.preventDefault(); switchMode(isSignup ? 'login' : 'signup'); }} style={{ fontWeight: 600 }}>{isSignup ? 'Log in' : 'Sign up'}</a>
+                  <a href="#" onClick={e => { e.preventDefault(); switchMode(isSignup ? 'login' : 'signup'); }} style={{ fontWeight: 600, color: 'var(--ox-text)' }}>{isSignup ? 'Log in' : 'Sign up'}</a>
                 </p>
               )}
             </div>
           </div>
-          )}
         </div>
       </div>
     </div>
