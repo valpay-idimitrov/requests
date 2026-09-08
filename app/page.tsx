@@ -46,6 +46,18 @@ function colorForEmail(email: string) {
   return 'hsl(' + h + ', 55%, 42%)';
 }
 
+function formatShortDate(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatFullDateTime(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString(undefined, { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
 // Lightweight, safe text formatting for descriptions — supports **bold**
 // and "- "/"* " bullet lists. Builds plain React elements (never
 // dangerouslySetInnerHTML), so user-submitted text can never inject HTML.
@@ -724,6 +736,10 @@ export default function RoadmapPage() {
                             )}
                             {showImpact && <span style={{ background: 'rgba(107,196,159,0.16)', color: '#6bc49f', fontSize: 11, fontWeight: 700, letterSpacing: 0.3, padding: '3px 10px', borderRadius: 'var(--radius-pill)' }}>GMV {req.gmvLabel}</span>}
                             {req.compliance && <span style={{ background: 'rgba(255,107,107,0.16)', color: '#ff6b6b', fontSize: 11, fontWeight: 700, letterSpacing: 0.3, padding: '3px 10px', borderRadius: 'var(--radius-pill)' }}>Compliance</span>}
+                            <span className="rm-tip" style={{ fontSize: 11, color: 'var(--ox-text-faint)', fontWeight: 500 }}>
+                              {formatShortDate(req.created)}
+                              <span className="rm-tip-bubble">Submitted {formatFullDateTime(req.created)}</span>
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -846,6 +862,10 @@ export default function RoadmapPage() {
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <span className="body-xs" style={{ color: 'var(--ox-text-faint)' }}>Submitted by</span>
                   <span className="body-sm" style={{ color: 'var(--ox-text)', fontWeight: 600 }}>{detailReq.submittedBy || 'Unknown'}</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', marginLeft: 'auto', textAlign: 'right' }}>
+                  <span className="body-xs" style={{ color: 'var(--ox-text-faint)' }}>Submitted on</span>
+                  <span className="body-sm" style={{ color: 'var(--ox-text-dim)' }}>{formatFullDateTime(detailReq.created)}</span>
                 </div>
               </div>
               {detailReq.gmvValue >= 1000000 && (
