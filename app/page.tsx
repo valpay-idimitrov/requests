@@ -191,13 +191,12 @@ export default function RoadmapPage() {
   const [passwordSaving, setPasswordSaving] = useState(false);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
 
-  const USER_OPTIONS = [
-    'blake.rouse@valpay.com','cameron.hutchinson@valpay.com','carly.jackson@valpay.com','elie.dimitri@valpay.com',
-    'ethan.savage@valpay.com','izabela.cyranowicz@valpay.com','joshua.leopardi@valpay.com','kenneth.fallon@valpay.com',
-    'matthew.georges@valpay.com','matthew.gottlieb@valpay.com','meagan.love@valpay.com','melissa.good@valpay.com',
-    'm.bourassa@valsoftcorp.com','raphael.gad@valpay.com','tarek.kazak@valpay.com','tristan.gauthier@valpay.com',
-    'youssef.maamoun@valpay.com','ivo.dimitrov@valpay.com'
-  ];
+  // Only users who have actually submitted a request appear here — derived
+  // live from the loaded requests rather than a hardcoded roster, so it
+  // never drifts out of date.
+  const USER_OPTIONS = Array.from(
+    new Set(requests.map(r => r.submittedBy).filter((email): email is string => !!email))
+  ).sort((a, b) => a.localeCompare(b));
 
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
@@ -606,7 +605,10 @@ export default function RoadmapPage() {
                 <svg width="9" height="6" viewBox="0 0 10 6" fill="none" style={{ marginLeft: 6, display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </button>
               {userMenuOpen && (
-                <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, background: 'var(--ox-2)', border: '1px solid var(--ox-border-strong)', borderRadius: 12, boxShadow: 'var(--ox-shadow-modal)', padding: 6, width: 'max-content', minWidth: '100%', boxSizing: 'border-box', maxHeight: 280, overflowY: 'scroll', zIndex: 20, whiteSpace: 'nowrap' }}>
+                <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, background: 'var(--ox-2)', border: '1px solid var(--ox-border-strong)', borderRadius: 12, boxShadow: 'var(--ox-shadow-modal)', padding: 6, width: 'max-content', minWidth: '100%', boxSizing: 'border-box', maxHeight: 320, overflowY: 'scroll', zIndex: 20, whiteSpace: 'nowrap' }}>
+                  <div style={{ padding: '6px 10px 8px', borderBottom: '1px solid var(--ox-border)', marginBottom: 4 }}>
+                    <span className="body-xs" style={{ color: 'var(--ox-text-faint)' }}>Only showing users who've submitted a request</span>
+                  </div>
                   <div onClick={() => { setUserFilter(''); setUserMenuOpen(false); setPage(0); }} style={userMenuItem}>All users</div>
                   {USER_OPTIONS.map(email => (
                     <div key={email} onClick={() => { setUserFilter(email); setUserMenuOpen(false); setPage(0); setActiveTab('requests'); setComplianceOnly(false); }} style={userMenuItem}>{email}</div>
