@@ -544,9 +544,10 @@ export default function RoadmapPage() {
                       style={{
                         whiteSpace: 'nowrap', borderRadius: 'var(--radius-btn)', padding: '0 18px', height: '100%',
                         display: 'flex', alignItems: 'center', fontSize: 16, fontWeight: 600, cursor: 'pointer',
-                        fontFamily: 'var(--font-body)', transition: 'var(--transition-all)', border: 'none',
-                        background: sortKey === t.key ? 'var(--ox-cta-bg)' : 'transparent',
-                        color: sortKey === t.key ? 'var(--ox-cta-text)' : 'var(--ox-text-dim)'
+                        fontFamily: 'var(--font-body)', transition: 'var(--transition-all)',
+                        border: sortKey === t.key ? '1.5px solid var(--ox-cta-bg)' : '1.5px solid transparent',
+                        background: 'transparent',
+                        color: sortKey === t.key ? 'var(--ox-text)' : 'var(--ox-text-dim)'
                       }}
                     >
                       {t.label}
