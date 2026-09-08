@@ -118,6 +118,9 @@ export default function RoadmapPage() {
   const [formGmv, setFormGmv] = useState('');
   const [formCompliance, setFormCompliance] = useState(false);
   const [formError, setFormError] = useState('');
+  const [formSubmitting, setFormSubmitting] = useState(false);
+  const [formSubmitSuccess, setFormSubmitSuccess] = useState(false);
+  const lastSubmitAtRef = useRef(0);
   const [page, setPage] = useState(0);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [theme, setTheme] = useState<Theme>('dark');
@@ -317,12 +320,21 @@ export default function RoadmapPage() {
   }
 
   async function submitForm() {
+    if (formSubmitting) return; // already in flight — ignore extra clicks
+    const now = Date.now();
+    if (now - lastSubmitAtRef.current < 2000) {
+      setFormError('Please wait a moment before submitting another request.');
+      return;
+    }
     if (!formTitle.trim()) { setFormError('Please add a title.'); return; }
     if (!formDesc.trim()) { setFormError('Please add a description.'); return; }
     const gmvRaw = (formGmv || '').replace(/[^0-9.]/g, '');
     const gmvValue = gmvRaw ? Math.round(parseFloat(gmvRaw)) : 0;
     const gmvLabel = gmvValue > 0 ? '$' + (gmvValue >= 1000000 ? (gmvValue / 1000000).toFixed(1).replace(/\.0$/, '') + 'M' : gmvValue.toLocaleString()) : '';
 
+    setFormSubmitting(true);
+    setFormError('');
+    lastSubmitAtRef.current = now;
     try {
       const res = await fetch('/api/requests', {
         method: 'POST',
@@ -330,14 +342,19 @@ export default function RoadmapPage() {
         body: JSON.stringify({ title: formTitle.trim(), description: formDesc.trim(), gmvValue, gmvLabel, compliance: formCompliance })
       });
       const data = await res.json();
-      if (!res.ok) { setFormError(data.error || 'Something went wrong.'); return; }
+      if (!res.ok) { setFormError(data.error || 'Something went wrong.'); setFormSubmitting(false); return; }
       const newReq = data.request as RoadmapRequest & { voters: Voter[] };
       setRequests(rs => [newReq, ...rs]);
       setVoterLists(prev => ({ ...prev, [newReq.id]: newReq.voters }));
-      setModalOpen(false);
-      setFormTitle(''); setFormDesc(''); setFormGmv(''); setFormCompliance(false); setFormError('');
       setPage(0);
+      setFormSubmitting(false);
+      setFormSubmitSuccess(true);
+      setTimeout(() => {
+        setModalOpen(false);
+        setFormTitle(''); setFormDesc(''); setFormGmv(''); setFormCompliance(false); setFormError(''); setFormSubmitSuccess(false);
+      }, 1100);
     } catch {
+      setFormSubmitting(false);
       setFormError('Something went wrong. Try again.');
     }
   }
@@ -370,6 +387,28 @@ export default function RoadmapPage() {
     } catch {
       setDescriptionSaving(false);
       setDescriptionError('Something went wrong. Try again.');
+    }
+  }
+
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
+  async function deleteRequest(id: string) {
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      const res = await fetch(`/api/requests/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      setDeleting(false);
+      if (!res.ok) { setDeleteError(data.error || 'Something went wrong.'); return; }
+      setRequests(rs => rs.filter(r => r.id !== id));
+      setVoterLists(prev => { const next = { ...prev }; delete next[id]; return next; });
+      setDeleteConfirmOpen(false);
+      setDetailId(null);
+    } catch {
+      setDeleting(false);
+      setDeleteError('Something went wrong. Try again.');
     }
   }
 
@@ -596,7 +635,7 @@ export default function RoadmapPage() {
                     return (
                       <div
                         key={req.id}
-                        onClick={() => { setDetailId(req.id); setEditingDescription(false); setDescriptionError(''); }}
+                        onClick={() => { setDetailId(req.id); setEditingDescription(false); setDescriptionError(''); setDeleteConfirmOpen(false); }}
                         style={{ background: 'var(--ox-panel)', border: '1px solid var(--ox-border)', borderRadius: 20, padding: '20px 22px', display: 'flex', gap: 18, alignItems: 'flex-start', animation: 'rmFadeIn 0.35s var(--ease-out)', backdropFilter: 'blur(6px)', boxShadow: 'var(--ox-shadow-card)', cursor: 'pointer', transition: 'background 0.24s var(--ease-out), border-color 0.24s var(--ease-out), transform 0.24s var(--ease-out)' }}
                       >
                         <button
@@ -677,8 +716,18 @@ export default function RoadmapPage() {
       </footer>
 
       {modalOpen && (
-        <div style={overlayStyle} onClick={() => setModalOpen(false)}>
+        <div style={overlayStyle} onClick={() => { if (!formSubmitting) setModalOpen(false); }}>
           <div style={{ ...panelStyle, maxWidth: 460 }} onClick={e => e.stopPropagation()}>
+            {formSubmitSuccess ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '20px 0' }}>
+                <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(107,196,159,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6bc49f" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                </div>
+                <div className="h4" style={{ color: 'var(--ox-text)', fontFamily: 'var(--font-display)', margin: 0 }}>Request submitted</div>
+                <p className="body-sm" style={{ color: 'var(--ox-text-faint)', margin: 0, textAlign: 'center' }}>Your request was successfully logged.</p>
+              </div>
+            ) : (
+            <>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <div className="h4" style={{ color: 'var(--ox-text)', fontFamily: 'var(--font-display)', margin: 0 }}>Submit a new request</div>
               <p className="body-sm" style={{ color: 'var(--ox-text-faint)', margin: 0 }}>Tell us what you need and we'll add it to the board.</p>
@@ -686,39 +735,41 @@ export default function RoadmapPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <label style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                 <span className="body-xs" style={{ color: 'var(--ox-text-faint)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>Title <span style={{ color: '#ff6b6b' }}>*</span></span>
-                <input type="text" value={formTitle} onChange={e => setFormTitle(e.target.value)} placeholder="e.g. Bulk export for chargeback data" style={fieldStyle} />
+                <input type="text" value={formTitle} onChange={e => setFormTitle(e.target.value)} placeholder="e.g. Bulk export for chargeback data" style={fieldStyle} disabled={formSubmitting} />
               </label>
               <label style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                 <span className="body-xs" style={{ color: 'var(--ox-text-faint)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>Description <span style={{ color: '#ff6b6b' }}>*</span></span>
-                <textarea value={formDesc} onChange={e => setFormDesc(e.target.value)} placeholder="What problem does this solve?" rows={3} style={{ ...fieldStyle, resize: 'vertical' }} />
+                <textarea value={formDesc} onChange={e => setFormDesc(e.target.value)} placeholder="What problem does this solve?" rows={3} style={{ ...fieldStyle, resize: 'vertical' }} disabled={formSubmitting} />
               </label>
               <label style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                 <span className="body-xs" style={{ color: 'var(--ox-text-faint)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>Estimated GMV (optional)</span>
-                <input type="text" value={formGmv} onChange={e => setFormGmv(e.target.value)} placeholder="e.g. 2500000" style={fieldStyle} />
+                <input type="text" value={formGmv} onChange={e => setFormGmv(e.target.value)} placeholder="e.g. 2500000" style={fieldStyle} disabled={formSubmitting} />
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}>
-                <input type="checkbox" checked={formCompliance} onChange={e => setFormCompliance(e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--ox-accent)', border: '1px solid var(--ox-border)', cursor: 'pointer' }} />
+                <input type="checkbox" checked={formCompliance} onChange={e => setFormCompliance(e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--ox-accent)', border: '1px solid var(--ox-border)', cursor: 'pointer' }} disabled={formSubmitting} />
                 <span className="body-sm" style={{ color: 'var(--ox-text-dim)' }}>This is a compliance-related request</span>
               </label>
             </div>
             {formError && <div className="body-sm" style={{ color: '#ff9b9b', margin: '-8px 0 0' }}>{formError}</div>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', borderTop: '1px solid var(--ox-border)', marginTop: 2, paddingTop: 18 }}>
-              <button onClick={() => setModalOpen(false)} style={btnCancel}>Cancel</button>
-              <button onClick={submitForm} style={btnCta}>Submit request</button>
+              <button onClick={() => setModalOpen(false)} style={btnCancel} disabled={formSubmitting}>Cancel</button>
+              <button onClick={submitForm} disabled={formSubmitting} style={{ ...btnCta, opacity: formSubmitting ? 0.7 : 1, cursor: formSubmitting ? 'default' : 'pointer' }}>{formSubmitting ? 'Submitting…' : 'Submit request'}</button>
             </div>
+            </>
+            )}
           </div>
         </div>
       )}
 
       {detailReq && (
-        <div style={{ ...overlayStyle, zIndex: 55 }} onClick={() => { setDetailId(null); setEditingDescription(false); }}>
+        <div style={{ ...overlayStyle, zIndex: 55 }} onClick={() => { setDetailId(null); setEditingDescription(false); setDeleteConfirmOpen(false); }}>
           <div style={{ ...panelStyle, maxWidth: 520, maxHeight: '80vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {detailReq.compliance && <span style={{ background: 'rgba(255,107,107,0.16)', color: '#ff6b6b', fontSize: 11, fontWeight: 700, letterSpacing: 0.3, padding: '3px 10px', borderRadius: 'var(--radius-pill)', width: 'fit-content' }}>Compliance</span>}
                 <div className="h5" style={{ color: 'var(--ox-text)', fontFamily: 'var(--font-display)', margin: 0 }}>{detailReq.title}</div>
               </div>
-              <button onClick={() => { setDetailId(null); setEditingDescription(false); }} style={{ background: 'transparent', border: 'none', color: 'var(--ox-text-faint)', fontSize: 20, lineHeight: 1, cursor: 'pointer', padding: 4 }}>×</button>
+              <button onClick={() => { setDetailId(null); setEditingDescription(false); setDeleteConfirmOpen(false); }} style={{ background: 'transparent', border: 'none', color: 'var(--ox-text-faint)', fontSize: 20, lineHeight: 1, cursor: 'pointer', padding: 4 }}>×</button>
             </div>
             {editingDescription ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -778,6 +829,40 @@ export default function RoadmapPage() {
                   })}
                 </div>
               )}
+            </div>
+            {myEmail && detailReq.submittedBy === myEmail && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--ox-border)', paddingTop: 16 }}>
+                <button
+                  onClick={() => { setDeleteConfirmOpen(true); setDeleteError(''); }}
+                  style={{ background: 'transparent', border: '1.5px solid #ff6b6b', color: '#ff6b6b', borderRadius: 'var(--radius-btn)', padding: '8px 16px', fontWeight: 600, fontSize: 13, fontFamily: 'var(--font-body)', cursor: 'pointer' }}
+                >
+                  Delete request
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {deleteConfirmOpen && detailReq && (
+        <div style={{ ...overlayStyle, zIndex: 65 }} onClick={() => { if (!deleting) setDeleteConfirmOpen(false); }}>
+          <div style={{ ...panelStyle, maxWidth: 380, padding: 28 }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div className="h5" style={{ color: 'var(--ox-text)', fontFamily: 'var(--font-display)', margin: 0 }}>Delete this request?</div>
+              <p className="body-sm" style={{ color: 'var(--ox-text-faint)', margin: 0 }}>
+                &ldquo;{detailReq.title}&rdquo; and its {detailReq.votes} vote{detailReq.votes === 1 ? '' : 's'} will be permanently deleted. This cannot be undone.
+              </p>
+            </div>
+            {deleteError && <div className="body-sm" style={{ color: '#ff9b9b', margin: '-8px 0 0' }}>{deleteError}</div>}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => setDeleteConfirmOpen(false)} disabled={deleting} style={btnCancel}>Cancel</button>
+              <button
+                onClick={() => deleteRequest(detailReq.id)}
+                disabled={deleting}
+                style={{ background: 'rgba(255,107,107,0.14)', border: '2px solid #ff6b6b', color: '#ff6b6b', borderRadius: 'var(--radius-btn)', padding: '10px 20px', fontWeight: 700, fontSize: 13, fontFamily: 'var(--font-body)', cursor: deleting ? 'default' : 'pointer', opacity: deleting ? 0.7 : 1 }}
+              >
+                {deleting ? 'Deleting…' : 'Delete'}
+              </button>
             </div>
           </div>
         </div>
