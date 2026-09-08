@@ -481,7 +481,7 @@ export default function RoadmapPage() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'nowrap' }}>
             <button
-              style={{ flexShrink: 0, background: 'transparent', color: 'var(--ox-text)', border: '1.5px solid var(--ox-cta-bg)', borderRadius: 'var(--radius-btn)', padding: '11px 22px', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'var(--transition-all)' }}
+              style={{ flexShrink: 0, background: 'rgba(139,111,219,0.14)', color: 'var(--ox-text)', border: '2px solid var(--ox-cta-bg)', borderRadius: 'var(--radius-btn)', padding: '11px 22px', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'var(--transition-all)' }}
               onClick={() => {
                 if (!myEmail) { setAuthModalOpen(true); setAuthMode('signup'); return; }
                 setModalOpen(true); setFormError('');
@@ -821,7 +821,7 @@ export default function RoadmapPage() {
 }
 
 const btnOutline: React.CSSProperties = { border: '1px solid var(--ox-border)', background: 'transparent', color: 'var(--ox-text-dim)', borderRadius: 'var(--radius-btn)', padding: '6px 14px', fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-body)', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 };
-const btnCta: React.CSSProperties = { background: 'transparent', color: 'var(--ox-text)', border: '1.5px solid var(--ox-cta-bg)', borderRadius: 'var(--radius-btn)', padding: '10px 20px', fontWeight: 700, fontSize: 13, fontFamily: 'var(--font-body)', cursor: 'pointer', transition: 'var(--transition-all)' };
+const btnCta: React.CSSProperties = { background: 'rgba(139,111,219,0.14)', color: 'var(--ox-text)', border: '2px solid var(--ox-cta-bg)', borderRadius: 'var(--radius-btn)', padding: '10px 20px', fontWeight: 700, fontSize: 13, fontFamily: 'var(--font-body)', cursor: 'pointer', transition: 'var(--transition-all)' };
 const btnCancel: React.CSSProperties = { background: 'transparent', border: '1px solid var(--ox-border)', color: 'var(--ox-text-dim)', borderRadius: 'var(--radius-btn)', padding: '10px 18px', fontWeight: 600, fontSize: 13, fontFamily: 'var(--font-body)', cursor: 'pointer', transition: 'var(--transition-all)' };
 const fieldStyle: React.CSSProperties = { border: '1px solid var(--ox-border)', borderRadius: 10, padding: '11px 13px', fontSize: 14, fontFamily: 'var(--font-body)', background: 'var(--ox-panel)', color: 'var(--ox-text)', outline: 'none', transition: 'var(--transition-all)' };
 const overlayStyle: React.CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(10,4,3,0.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 24, animation: 'rmFadeIn 0.2s var(--ease-out)' };
