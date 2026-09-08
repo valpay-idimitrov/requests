@@ -70,12 +70,12 @@ function isValidEmail(v: string) {
 type Theme = 'dark' | 'light';
 const PALETTES: Record<Theme, Record<string, string>> = {
   dark: {
-    '--ox-1': '#2a1108', '--ox-2': '#3a170f', '--ox-3': '#5a2519', '--ox-glow': '#8c4230',
-    '--ox-panel': 'rgba(10,4,3,0.32)', '--ox-panel-strong': 'rgba(10,4,3,0.46)',
-    '--ox-border': 'rgba(255,238,230,0.16)', '--ox-border-strong': 'rgba(255,238,230,0.3)',
-    '--ox-text': '#FFF9F5', '--ox-text-dim': 'rgba(255,249,245,0.82)', '--ox-text-faint': 'rgba(255,249,245,0.62)',
-    '--ox-accent': '#f6d3ba', '--ox-cta-bg': '#FFFFFF', '--ox-cta-text': '#2a1108',
-    '--ox-shadow-cta': '0 12px 32px rgba(0,0,0,0.5)', '--ox-shadow-modal': '0 24px 64px rgba(0,0,0,0.5)', '--ox-shadow-card': '0 8px 24px rgba(0,0,0,0.22)'
+    '--ox-1': '#332a5c', '--ox-2': '#3c336c', '--ox-3': '#453c7d', '--ox-glow': '#8b7ac9',
+    '--ox-panel': 'rgba(255,255,255,0.06)', '--ox-panel-strong': 'rgba(255,255,255,0.09)',
+    '--ox-border': 'rgba(255,255,255,0.14)', '--ox-border-strong': 'rgba(255,255,255,0.24)',
+    '--ox-text': '#FFFFFF', '--ox-text-dim': 'rgba(255,255,255,0.82)', '--ox-text-faint': 'rgba(255,255,255,0.58)',
+    '--ox-accent': '#B3A3E8', '--ox-cta-bg': '#8B6FDB', '--ox-cta-text': '#FFFFFF',
+    '--ox-shadow-cta': '0 10px 24px rgba(139,111,219,0.35)', '--ox-shadow-modal': '0 24px 64px rgba(0,0,0,0.28)', '--ox-shadow-card': '0 8px 24px rgba(0,0,0,0.18)'
   },
   light: {
     '--ox-1': '#FFFFFF', '--ox-2': '#F7FBF9', '--ox-3': '#EAF6EF', '--ox-glow': '#D8F0E3',
@@ -481,7 +481,7 @@ export default function RoadmapPage() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'nowrap' }}>
             <button
-              style={{ flexShrink: 0, background: 'var(--ox-cta-bg)', color: 'var(--ox-cta-text)', border: 'none', borderRadius: 'var(--radius-btn)', padding: '11px 22px', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: 'var(--ox-shadow-cta)', transition: 'var(--transition-all)' }}
+              style={{ flexShrink: 0, background: 'transparent', color: 'var(--ox-text)', border: '1.5px solid var(--ox-cta-bg)', borderRadius: 'var(--radius-btn)', padding: '11px 22px', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'var(--transition-all)' }}
               onClick={() => {
                 if (!myEmail) { setAuthModalOpen(true); setAuthMode('signup'); return; }
                 setModalOpen(true); setFormError('');
@@ -526,7 +526,7 @@ export default function RoadmapPage() {
         </div>
       </header>
 
-      <div style={{ padding: '48px 32px 96px', flex: 1 }}>
+      <div style={{ padding: '48px 32px 96px', flex: 1, background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.22) 40%, rgba(0,0,0,0.32) 100%)' }}>
         <div style={{ maxWidth: 720, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
           {activeTab === 'requests' && (
             <>
@@ -604,11 +604,11 @@ export default function RoadmapPage() {
                             width: 52, height: 52, flex: 'none', borderRadius: 'var(--radius-md)', cursor: 'pointer',
                             fontFamily: 'var(--font-body)', transition: 'var(--transition-all)',
                             border: `1px solid ${voted ? 'var(--ox-cta-bg)' : 'var(--ox-border)'}`,
-                            background: voted ? 'var(--ox-cta-bg)' : 'var(--ox-panel-strong)'
+                            background: voted ? 'rgba(139,111,219,0.14)' : 'var(--ox-panel-strong)'
                           }}
                         >
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={voted ? 'var(--ox-cta-text)' : 'var(--ox-text-dim)'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
-                          <span style={{ fontSize: 15, fontWeight: 700, color: voted ? 'var(--ox-cta-text)' : 'var(--ox-text)' }}>{req.weightedVotes}</span>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={voted ? 'var(--ox-cta-bg)' : 'var(--ox-text-dim)'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
+                          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ox-text)' }}>{req.weightedVotes}</span>
                         </button>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 9, minWidth: 0, flex: 1 }}>
                           <div style={{ margin: 0, color: 'var(--ox-text)', fontSize: 16, fontWeight: 600, lineHeight: 1.4 }}>{req.title}</div>
@@ -820,7 +820,7 @@ export default function RoadmapPage() {
 }
 
 const btnOutline: React.CSSProperties = { border: '1px solid var(--ox-border)', background: 'transparent', color: 'var(--ox-text-dim)', borderRadius: 'var(--radius-btn)', padding: '6px 14px', fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-body)', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 };
-const btnCta: React.CSSProperties = { background: 'var(--ox-cta-bg)', color: 'var(--ox-cta-text)', border: 'none', borderRadius: 'var(--radius-btn)', padding: '10px 20px', fontWeight: 700, fontSize: 13, fontFamily: 'var(--font-body)', cursor: 'pointer', boxShadow: 'var(--ox-shadow-cta)', transition: 'var(--transition-all)' };
+const btnCta: React.CSSProperties = { background: 'transparent', color: 'var(--ox-text)', border: '1.5px solid var(--ox-cta-bg)', borderRadius: 'var(--radius-btn)', padding: '10px 20px', fontWeight: 700, fontSize: 13, fontFamily: 'var(--font-body)', cursor: 'pointer', transition: 'var(--transition-all)' };
 const btnCancel: React.CSSProperties = { background: 'transparent', border: '1px solid var(--ox-border)', color: 'var(--ox-text-dim)', borderRadius: 'var(--radius-btn)', padding: '10px 18px', fontWeight: 600, fontSize: 13, fontFamily: 'var(--font-body)', cursor: 'pointer', transition: 'var(--transition-all)' };
 const fieldStyle: React.CSSProperties = { border: '1px solid var(--ox-border)', borderRadius: 10, padding: '11px 13px', fontSize: 14, fontFamily: 'var(--font-body)', background: 'var(--ox-panel)', color: 'var(--ox-text)', outline: 'none', transition: 'var(--transition-all)' };
 const overlayStyle: React.CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(10,4,3,0.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 24, animation: 'rmFadeIn 0.2s var(--ease-out)' };
