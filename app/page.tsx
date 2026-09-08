@@ -45,6 +45,46 @@ function colorForEmail(email: string) {
   const h = hashStr(email || '') % 360;
   return 'hsl(' + h + ', 55%, 42%)';
 }
+
+// Lightweight, safe text formatting for descriptions — supports **bold**
+// and "- "/"* " bullet lists. Builds plain React elements (never
+// dangerouslySetInnerHTML), so user-submitted text can never inject HTML.
+function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+      return <strong key={`${keyPrefix}-${i}`}>{part.slice(2, -2)}</strong>;
+    }
+    return <span key={`${keyPrefix}-${i}`}>{part}</span>;
+  });
+}
+
+function renderFormattedText(text: string): React.ReactNode {
+  const blocks = text.split(/\n\s*\n/); // blank line = new paragraph/list
+  return (
+    <>
+      {blocks.map((block, bi) => {
+        const lines = block.split('\n').filter(l => l.trim().length > 0);
+        const isList = lines.length > 0 && lines.every(l => /^\s*[-*]\s+/.test(l));
+        if (isList) {
+          return (
+            <ul key={bi} style={{ margin: '0 0 10px', paddingLeft: 20 }}>
+              {lines.map((line, li) => (
+                <li key={li} style={{ marginBottom: 2 }}>{renderInline(line.replace(/^\s*[-*]\s+/, ''), `${bi}-${li}`)}</li>
+              ))}
+            </ul>
+          );
+        }
+        return (
+          <p key={bi} style={{ margin: bi === blocks.length - 1 ? 0 : '0 0 10px', whiteSpace: 'pre-wrap' }}>
+            {renderInline(block, `${bi}`)}
+          </p>
+        );
+      })}
+    </>
+  );
+}
+
 // Visible weighting: a colored ring around the avatar signals seniority.
 // Founders > CEO/CTO > dept heads > everyone else (no ring).
 function ringColorForWeight(weight: number): string | undefined {
@@ -717,7 +757,7 @@ export default function RoadmapPage() {
 
       {modalOpen && (
         <div style={overlayStyle} onClick={() => { if (!formSubmitting) setModalOpen(false); }}>
-          <div style={{ ...panelStyle, maxWidth: 460 }} onClick={e => e.stopPropagation()}>
+          <div style={{ ...panelStyle, maxWidth: 620 }} onClick={e => e.stopPropagation()}>
             {formSubmitSuccess ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '20px 0' }}>
                 <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(107,196,159,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -739,7 +779,7 @@ export default function RoadmapPage() {
               </label>
               <label style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                 <span className="body-xs" style={{ color: 'var(--ox-text-faint)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>Description <span style={{ color: '#ff6b6b' }}>*</span></span>
-                <textarea value={formDesc} onChange={e => setFormDesc(e.target.value)} placeholder="What problem does this solve?" rows={3} style={{ ...fieldStyle, resize: 'vertical' }} disabled={formSubmitting} />
+                <textarea value={formDesc} onChange={e => setFormDesc(e.target.value)} placeholder="What problem does this solve? You can use **bold** and lines starting with - for a bullet list." rows={6} style={{ ...fieldStyle, resize: 'vertical' }} disabled={formSubmitting} />
               </label>
               <label style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                 <span className="body-xs" style={{ color: 'var(--ox-text-faint)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>Estimated GMV (optional)</span>
@@ -787,13 +827,15 @@ export default function RoadmapPage() {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {detailReq.description && <p className="body-sm" style={{ color: 'var(--ox-text-dim)', margin: 0, whiteSpace: 'pre-wrap' }}>{detailReq.description}</p>}
-                <button
-                  onClick={() => { setDescriptionDraft(detailReq.description || ''); setEditingDescription(true); setDescriptionError(''); }}
-                  style={{ background: 'transparent', border: 'none', color: 'var(--ox-text-faint)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0, width: 'fit-content', textDecoration: 'underline' }}
-                >
-                  Edit description
-                </button>
+                {detailReq.description && <div className="body-sm" style={{ color: 'var(--ox-text-dim)' }}>{renderFormattedText(detailReq.description)}</div>}
+                {myEmail && detailReq.submittedBy === myEmail && (
+                  <button
+                    onClick={() => { setDescriptionDraft(detailReq.description || ''); setEditingDescription(true); setDescriptionError(''); }}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--ox-text-faint)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0, width: 'fit-content', textDecoration: 'underline' }}
+                  >
+                    Edit description
+                  </button>
+                )}
               </div>
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid var(--ox-border)', paddingTop: 16 }}>

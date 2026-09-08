@@ -20,6 +20,19 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     return NextResponse.json({ error: 'Description cannot be empty.' }, { status: 400 });
   }
 
+  const { data: existing, error: fetchError } = await supabase
+    .from('requests')
+    .select('id, submitted_by')
+    .eq('id', params.id)
+    .single();
+
+  if (fetchError || !existing) {
+    return NextResponse.json({ error: 'Request not found.' }, { status: 404 });
+  }
+  if (existing.submitted_by !== user.id) {
+    return NextResponse.json({ error: 'You can only edit requests you submitted.' }, { status: 403 });
+  }
+
   // Only `description` is ever written here — any other fields in the body
   // are ignored, and the DB grant (see supabase/migrations) enforces the
   // same restriction at the column level regardless of what's sent.
