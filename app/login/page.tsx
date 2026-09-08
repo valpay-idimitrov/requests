@@ -131,15 +131,21 @@ export default function LoginPage() {
   const current = ROTATING_NAMES[nameIndex];
   const currentColor = FLARE_COLORS[current.flare];
 
+  async function goHome() {
+    const supabase = createClient();
+    const { data } = await supabase.auth.getSession();
+    router.push(data.session ? '/' : '/login');
+  }
+
   return (
     <div style={{ ...loginPalette, fontFamily: 'var(--font-body)', color: 'var(--ox-text)', minHeight: '100vh', display: 'flex', alignItems: 'stretch', justifyContent: 'center', padding: 24, boxSizing: 'border-box', background: 'linear-gradient(160deg, var(--ox-3) 0%, var(--ox-2) 45%, var(--ox-1) 100%)' }}>
       <div style={{ position: 'relative', width: '100%', maxWidth: 1280, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 140, padding: 56, boxSizing: 'border-box', minHeight: 'calc(100vh - 48px)' }}>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 40, maxWidth: 440, flex: '1 1 320px', minWidth: 280 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'nowrap' }}>
-            <Image src="/assets/valpay-logo-transparent.png" alt="ValPay" width={110} height={40} style={{ height: 40, width: 'auto', display: 'block', flexShrink: 0 }} />
+            <Image onClick={goHome} src="/assets/valpay-logo-transparent.png" alt="ValPay" width={110} height={40} style={{ height: 40, width: 'auto', display: 'block', flexShrink: 0, cursor: 'pointer' }} />
             <span style={{ width: 1, height: 24, background: 'var(--ox-border)', flexShrink: 0 }} />
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, color: 'var(--ox-text-dim)', whiteSpace: 'nowrap' }}>Roadmap</span>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, color: 'var(--ox-text-dim)', whiteSpace: 'nowrap' }}>Roadmap Requests</span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 460 }}>
@@ -228,7 +234,7 @@ export default function LoginPage() {
             )}
 
             {!checkEmail && !resetSent && (
-            <button onClick={onSubmit} disabled={submitting} style={{ background: 'transparent', color: 'var(--ox-text)', border: '1.5px solid var(--ox-cta-bg)', borderRadius: 'var(--radius-btn)', padding: '13px 20px', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 15, letterSpacing: 0.2, cursor: submitting ? 'default' : 'pointer', opacity: submitting ? 0.7 : 1, transition: 'var(--transition-all)' }}>
+            <button onClick={onSubmit} disabled={submitting} style={{ background: 'rgba(139,111,219,0.14)', color: 'var(--ox-text)', border: '2px solid var(--ox-cta-bg)', borderRadius: 'var(--radius-btn)', padding: '13px 20px', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 15, letterSpacing: 0.2, cursor: submitting ? 'default' : 'pointer', opacity: submitting ? 0.7 : 1, transition: 'var(--transition-all)' }}>
               {submitting ? 'Please wait…' : (isReset ? 'Send reset link' : (isSignup ? 'Create account' : 'Sign in'))}
             </button>
             )}

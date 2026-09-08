@@ -79,15 +79,21 @@ export default function ResetPasswordPage() {
     if (e.key === 'Enter') onSubmit();
   }
 
+  async function goHome() {
+    const supabase = createClient();
+    const { data } = await supabase.auth.getSession();
+    router.push(data.session ? '/' : '/login');
+  }
+
   return (
     <div style={{ ...palette, fontFamily: 'var(--font-body)', color: 'var(--ox-text)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, boxSizing: 'border-box', background: 'linear-gradient(160deg, var(--ox-3) 0%, var(--ox-2) 45%, var(--ox-1) 100%)' }}>
       <div style={{ position: 'relative', border: '1px solid var(--ox-border)', borderRadius: 20, width: 380, boxShadow: '0 24px 64px rgba(0,0,0,0.28)', overflow: 'hidden', background: 'var(--ox-panel)', backdropFilter: 'blur(20px)' }}>
         <div style={{ padding: '36px 36px 32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <Image src="/assets/valpay-logo-transparent.png" alt="ValPay" width={110} height={40} style={{ height: 40, width: 'auto', display: 'block' }} />
+            <Image onClick={goHome} src="/assets/valpay-logo-transparent.png" alt="ValPay" width={110} height={40} style={{ height: 40, width: 'auto', display: 'block', cursor: 'pointer' }} />
             <span style={{ width: 1, height: 24, background: 'var(--ox-border)' }} />
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, color: 'var(--ox-text-dim)' }}>Roadmap</span>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, color: 'var(--ox-text-dim)' }}>Roadmap Requests</span>
           </div>
 
           {status === 'checking' && (

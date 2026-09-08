@@ -453,11 +453,12 @@ export default function RoadmapPage() {
         <div style={{ maxWidth: 720, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 32 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Image
+              onClick={() => router.push(myEmail ? '/' : '/login')}
               src={theme === 'dark' ? '/assets/valpay-logo-transparent.png' : '/assets/valpay-logo-navy.png'}
-              alt="ValPay" width={110} height={32} style={{ height: 32, width: 'auto', display: 'block' }}
+              alt="ValPay" width={110} height={32} style={{ height: 32, width: 'auto', display: 'block', cursor: 'pointer' }}
             />
             <span style={{ width: 1, height: 20, background: 'var(--ox-border-strong)' }} />
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 500, color: 'var(--ox-text)' }}>Roadmap</span>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 500, color: 'var(--ox-text)' }}>Roadmap Requests</span>
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
               {myEmail ? (
                 <>
@@ -571,9 +572,9 @@ export default function RoadmapPage() {
                       whiteSpace: 'nowrap', flexShrink: 0, height: 36, padding: '0 14px', borderRadius: 'var(--radius-btn)',
                       fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)',
                       transition: 'background 0.2s, color 0.2s, border-color 0.2s',
-                      border: complianceOnly ? '1px solid #ff6b6b' : '1.5px solid #ff6b6b',
-                      background: complianceOnly ? '#ff6b6b' : 'transparent',
-                      color: complianceOnly ? '#2a1108' : '#ff6b6b',
+                      border: '2px solid #ff6b6b',
+                      background: complianceOnly ? 'rgba(255,107,107,0.18)' : 'transparent',
+                      color: '#ff6b6b',
                       animation: compliancePulsing ? 'rmCompliancePulse 0.45s ease-out' : undefined
                     }}
                   >

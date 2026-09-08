@@ -112,15 +112,21 @@ export default function SignupPage() {
 
   const current = ROTATING_NAMES[nameIndex];
 
+  async function goHome() {
+    const supabase = createClient();
+    const { data } = await supabase.auth.getSession();
+    router.push(data.session ? '/' : '/login');
+  }
+
   return (
     <div style={{ ...loginPalette, fontFamily: 'var(--font-body)', color: 'var(--ox-text)', minHeight: '100vh', display: 'flex', alignItems: 'stretch', justifyContent: 'center', padding: 24, boxSizing: 'border-box', background: 'radial-gradient(ellipse 900px 700px at 82% 4%, var(--ox-glow) 0%, var(--ox-3) 26%, var(--ox-2) 52%, var(--ox-1) 100%)' }}>
       <div style={{ position: 'relative', width: '100%', maxWidth: 1420, border: '1px solid var(--ox-border)', borderRadius: 28, overflow: 'hidden', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 220, padding: 56, boxSizing: 'border-box', minHeight: 'calc(100vh - 48px)', background: 'rgba(10,4,3,0.1)' }}>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 48, maxWidth: 460, flex: '1 1 320px', minWidth: 280 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'nowrap', paddingLeft: 10 }}>
-            <Image src="/assets/valpay-logo-transparent.png" alt="ValPay" width={140} height={52} style={{ height: 52, width: 'auto', display: 'block', flexShrink: 0 }} />
+            <Image onClick={goHome} src="/assets/valpay-logo-transparent.png" alt="ValPay" width={140} height={52} style={{ height: 52, width: 'auto', display: 'block', flexShrink: 0, cursor: 'pointer' }} />
             <span style={{ width: 1, height: 32, background: 'var(--ox-border-strong)', flexShrink: 0 }} />
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 500, color: 'var(--ox-text)', whiteSpace: 'nowrap' }}>Roadmap</span>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 500, color: 'var(--ox-text)', whiteSpace: 'nowrap' }}>Roadmap Requests</span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 460, paddingLeft: 20 }}>
