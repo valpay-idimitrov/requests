@@ -415,24 +415,30 @@ export default function RoadmapPage() {
   }
 
   const [editingDescription, setEditingDescription] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
   const [descriptionDraft, setDescriptionDraft] = useState('');
+  const [gmvDraft, setGmvDraft] = useState('');
   const [descriptionSaving, setDescriptionSaving] = useState(false);
   const [descriptionError, setDescriptionError] = useState('');
 
   async function saveDescription(id: string) {
-    const trimmed = descriptionDraft.trim();
-    if (!trimmed) { setDescriptionError('Description cannot be empty.'); return; }
+    const trimmedTitle = titleDraft.trim();
+    const trimmedDesc = descriptionDraft.trim();
+    if (!trimmedTitle) { setDescriptionError('Title cannot be empty.'); return; }
+    if (!trimmedDesc) { setDescriptionError('Description cannot be empty.'); return; }
+    const gmvRaw = (gmvDraft || '').replace(/[^0-9.]/g, '');
+    const gmvValue = gmvRaw ? Math.round(parseFloat(gmvRaw)) : 0;
     setDescriptionSaving(true);
     try {
       const res = await fetch(`/api/requests/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: trimmed })
+        body: JSON.stringify({ title: trimmedTitle, description: trimmedDesc, gmvValue })
       });
       const data = await res.json();
       setDescriptionSaving(false);
       if (!res.ok) { setDescriptionError(data.error || 'Something went wrong.'); return; }
-      setRequests(rs => rs.map(r => (r.id === id ? { ...r, description: trimmed } : r)));
+      setRequests(rs => rs.map(r => (r.id === id ? { ...r, title: data.title, description: data.description, gmvValue: data.gmvValue, gmvLabel: data.gmvLabel } : r)));
       setEditingDescription(false);
       setDescriptionError('');
     } catch {
@@ -823,20 +829,36 @@ export default function RoadmapPage() {
         <div style={{ ...overlayStyle, zIndex: 55 }} onClick={() => { setDetailId(null); setEditingDescription(false); setDeleteConfirmOpen(false); }}>
           <div style={{ ...panelStyle, maxWidth: 520, maxHeight: '80vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 }}>
                 {detailReq.compliance && <span style={{ background: 'rgba(255,107,107,0.16)', color: '#ff6b6b', fontSize: 11, fontWeight: 700, letterSpacing: 0.3, padding: '3px 10px', borderRadius: 'var(--radius-pill)', width: 'fit-content' }}>Compliance</span>}
-                <div className="h5" style={{ color: 'var(--ox-text)', fontFamily: 'var(--font-display)', margin: 0 }}>{detailReq.title}</div>
+                {editingDescription ? (
+                  <input
+                    type="text"
+                    value={titleDraft}
+                    onChange={e => { setTitleDraft(e.target.value); setDescriptionError(''); }}
+                    style={{ ...fieldStyle, fontSize: 17, fontWeight: 600, fontFamily: 'var(--font-display)' }}
+                  />
+                ) : (
+                  <div className="h5" style={{ color: 'var(--ox-text)', fontFamily: 'var(--font-display)', margin: 0 }}>{detailReq.title}</div>
+                )}
               </div>
-              <button onClick={() => { setDetailId(null); setEditingDescription(false); setDeleteConfirmOpen(false); }} style={{ background: 'transparent', border: 'none', color: 'var(--ox-text-faint)', fontSize: 20, lineHeight: 1, cursor: 'pointer', padding: 4 }}>×</button>
+              <button onClick={() => { setDetailId(null); setEditingDescription(false); setDeleteConfirmOpen(false); }} style={{ background: 'transparent', border: 'none', color: 'var(--ox-text-faint)', fontSize: 20, lineHeight: 1, cursor: 'pointer', padding: 4, flex: 'none' }}>×</button>
             </div>
             {editingDescription ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <textarea
-                  value={descriptionDraft}
-                  onChange={e => { setDescriptionDraft(e.target.value); setDescriptionError(''); }}
-                  rows={4}
-                  style={{ ...fieldStyle, resize: 'vertical' }}
-                />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <span className="body-xs" style={{ color: 'var(--ox-text-faint)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>Description</span>
+                  <textarea
+                    value={descriptionDraft}
+                    onChange={e => { setDescriptionDraft(e.target.value); setDescriptionError(''); }}
+                    rows={5}
+                    style={{ ...fieldStyle, resize: 'vertical' }}
+                  />
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <span className="body-xs" style={{ color: 'var(--ox-text-faint)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>Estimated GMV</span>
+                  <input type="text" value={gmvDraft} onChange={e => { setGmvDraft(e.target.value); setDescriptionError(''); }} placeholder="e.g. 2500000" style={fieldStyle} />
+                </label>
                 {descriptionError && <div className="body-sm" style={{ color: '#ff9b9b' }}>{descriptionError}</div>}
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                   <button onClick={() => { setEditingDescription(false); setDescriptionError(''); }} style={btnCancel}>Cancel</button>
@@ -848,10 +870,10 @@ export default function RoadmapPage() {
                 {detailReq.description && <div className="body-sm" style={{ color: 'var(--ox-text-dim)' }}>{renderFormattedText(detailReq.description)}</div>}
                 {myEmail && detailReq.submittedBy === myEmail && (
                   <button
-                    onClick={() => { setDescriptionDraft(detailReq.description || ''); setEditingDescription(true); setDescriptionError(''); }}
+                    onClick={() => { setTitleDraft(detailReq.title); setDescriptionDraft(detailReq.description || ''); setGmvDraft(detailReq.gmvValue ? String(detailReq.gmvValue) : ''); setEditingDescription(true); setDescriptionError(''); }}
                     style={{ background: 'transparent', border: 'none', color: 'var(--ox-text-faint)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0, width: 'fit-content', textDecoration: 'underline' }}
                   >
-                    Edit description
+                    Edit request
                   </button>
                 )}
               </div>
